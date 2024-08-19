@@ -92,3 +92,37 @@ async def get_anuncios(page: int = Query(1, gt=0)):
         "anuncios": anuncios_paginados,
         "totalPages": total_pages
     }
+
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+import os
+
+
+
+# Configurar la ruta para servir archivos estáticos
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Ruta para subir archivos
+@app.post("/upload/")
+async def upload_image(file: UploadFile = File(...)):
+    file_location = f"static/images/{file.filename}"
+    with open(file_location, "wb") as f:
+        f.write(file.file.read())
+    return {"filename": file.filename}
+
+# Ruta para listar las imágenes
+@app.get("/images/")
+async def list_images():
+    images_dir = "static/images"
+    images = [f"http://localhost:8000/static/images/{img}" for img in os.listdir(images_dir)]
+    return images
+
+# Ruta para eliminar imágenes
+@app.delete("/images/{image_name}")
+async def delete_image(image_name: str):
+    file_path = f"static/images/{image_name}"
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return {"detail": "Image deleted"}
+    raise HTTPException(status_code=404, detail="Image not found")
